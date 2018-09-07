@@ -1,44 +1,70 @@
 import subprocess
-import RPi.GPIO as GPIO
 import time
+import os
+
+class Game:
 
 
-Models = 'Matrix'
-arguements = ['/opt/fpp/src/fppmm', '-m', 'a' , '-o', 'on']
+    def __init__(self, target=12, race_animation=[], winner=16, not_winner=17, prepare=4, animation_selector=0):
+        self.target = target
+#        self.start = start
+        self.race_animation = race_animation
+        self.winner = winner
+        self.not_winner = not_winner
+        self.prepare = prepare
+        self.animation_selector = animation_selector
 
-fill_trigger = 23
-start_trigger = 27
-end = 26
+#    def get_start(self):
+#        return self.start
+    def get_switches(self):
+        return [self.target, self.winner, self.not_winner, self.prepare]
 
+    def get_target(self):
+        return self.target
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
-GPIO.setup(fill_trigger, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(end, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(start_trigger, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-counter = 0
+    def get_winner(self):
+        return self.winner
 
-def race_start(channel):
-	global counter
-	counter = 0
-	for i in range(1, 30):
-		arguements[2] = Models + str(i)
-		subprocess.run(arguements)
-
-def fill(channel):
-	global counter
-	arguements[2] = Models + str(counter)
-	arguements[4] = 'off'
-	subprocess.run(arguements)
-	counter += 1
+    def get_not_winner(self):
+        return self.not_winner
+    
+    def get_prepare(self):
+        return self.prepare
 
 
-GPIO.add_event_detect(start_trigger, GPIO.RISING, callback=race_start, bouncetime=200)
-GPIO.add_event_detect(fill_trigger, GPIO.RISING, callback=fill, bouncetime=200)
+    def fill(self, channel):
+        model = 'Matrix'
+        command = ['/opt/fpp/src/fppmm', '-m', 'a' , '-o', 'off']
+        counter = 1
+        if counter <  24:
+            command[2] = model + str(counter)
+            subprocess.run(command)
+            counter += 1
 
+    def play_winner(self, channel):
+        command = ['fpp', '-P', 'winner']
+        subprocess.run(command)
 
-try:
-	GPIO.wait_for_edge(end, GPIO.RISING)
-except KeyboardInterrupt:
-	GPIO.cleanup()
-GPIO.cleanup()
+    def play_not_winner(self, channel):
+        command = ['fpp', '-P', 'nowinner']
+        subprocess.run(command)
+
+    def play_prepare(self, channel):
+        play_animation = ['/opt/fpp/src/fpp', '-p',]
+        if self.animation_selector < 4:
+            play_animation.append(self.race_animation[self.animation_selector])
+            subprocess.run(play_animation)
+            self.animation_selector += 1
+        elif self.animation_selector >= 4:
+            self.animation_selector = 0
+            play_animation.append(self.race_animation[self.animation_selector])
+            subprocess.run(play_animation)
+            self.animation_selector += 1
+
+        model = 'Matrix'
+        command = ['/opt/fpp/src/fppmm', '-m', 'a' , '-o', 'on']
+        counter = 1
+        if counter < 24:
+            command[2] = model + str(counter)
+            subprocess.run(command)
+            counter += 1
